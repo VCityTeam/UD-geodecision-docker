@@ -18,6 +18,6 @@ The outputs are placed in `data/outputs` subdirectory.
 ### Developer's notes
  * In order to debug the build container use
    ```bash
-   docker run
+   docker run --entrypoint /bin/bash -it liris/geodecision 
    ```
 
