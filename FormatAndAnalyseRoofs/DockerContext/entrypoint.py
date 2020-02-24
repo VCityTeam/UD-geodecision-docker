@@ -2,6 +2,7 @@ import subprocess
 import json
 import os
 import shutil
+import re
 
 subprocess.call(
         [
@@ -20,10 +21,11 @@ with open(json_config) as f:
    params = json.load(f)
    output_dir = params["dir"]["output"]
    target_output_dir = os.path.join("/Output", output_dir)
-# FIXME: instead of removing the output dir (with the risk of
-# losing information coming from the invocation context), check
-# for existence and append some integer to the output directory
-# name to avoid collision
+
 if os.path.isdir(target_output_dir):
-    shutil.rmtree(target_output_dir)
+    target_output_dir = target_output_dir + re.sub(
+            r"[-: ]", "_", str(
+                    datetime.datetime.now()
+            ).split(".")[0]
+    )
 shutil.copytree(output_dir, target_output_dir)
