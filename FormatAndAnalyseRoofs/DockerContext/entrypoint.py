@@ -23,7 +23,7 @@ with open(json_config) as f:
    target_output_dir = os.path.join("/Output", output_dir)
 
 if os.path.isdir(target_output_dir):
-    target_output_dir = target_output_dir + re.sub(
+    target_output_dir = target_output_dir + "_" + re.sub(
             r"[-: ]", "_", str(
                     datetime.datetime.now()
             ).split(".")[0]
