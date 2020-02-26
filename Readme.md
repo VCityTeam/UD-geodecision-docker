@@ -5,7 +5,7 @@ In order to easily share and deploy our applications and processes, we use [Dock
 
 Working with geospatial libraries (*like [geopandas](http://geopandas.org/)*) under Python could be problematic if they are not correctly installed.
 
-That's why we use the [Conda](https://conda.io/en/latest/) environnement to install them and create virtual environnement. For more explanations about it, see the [warnings in the geodecision readme](https://github.com/VCityTeam/UD-geodecision#warningsdisclaimer). 
+That's why we use the [Conda](https://conda.io/en/latest/) environnement to install them and create virtual environnement. For more explanations about it, see the [warnings in the geodecision readme](https://github.com/VCityTeam/UD-geodecision#warningsdisclaimer).
 
 ## Needs
 > To illustrate the process, we have created a DockerContext example: [TestGetParks_DockerContext](./TestGetParks_DockerContext).
@@ -72,7 +72,9 @@ To set our docker, we need:
 ![process](./img/docker_organisation.png)
 
 ### Building and running instructions: the shell way
+#### General information
 The docker build process requires access to the [UD-geodecision github repository](https://github.com/VCityTeam/UD-geodecision).
+
 In order to transmit such credentials to the building process you should
 first [create a personnal access token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line) (referenced as `TOKEN` below).
 
@@ -84,9 +86,12 @@ docker build --build-arg git_token=<TOKEN> -t liris/geodecision DockerContext
 ```
 You can now run the container with
 ```bash
-docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/Output,type=bind --rm -it liris/geodecision
+docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/Output,type=bind -it liris/geodecision
 ```
 The outputs are placed in `data/outputs` subdirectory.
+
+#### Specific information
+> ***See the readme in the dockers' directories***
 
 ### Developer's notes
  * In order to debug the build container use
