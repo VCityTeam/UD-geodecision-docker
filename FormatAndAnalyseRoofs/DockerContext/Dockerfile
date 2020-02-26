@@ -13,15 +13,14 @@ RUN conda env create -f env.yml
 # Retrieve the CityGML files from NextCloud server, and prepare them
 RUN mkdir data
 RUN mkdir /data/outputs
-#RUN wget https://box.liris.cnrs.fr/s/S6pxYb4kEmzCFgt/download && unzip download -d /data && rm download
-RUN wget https://box.liris.cnrs.fr/s/RpLmwooKtXzSmCR/download && unzip download -d /data && rm download
+RUN wget https://box.liris.cnrs.fr/s/S6pxYb4kEmzCFgt/download && unzip download -d /data && rm download
 
 # Retrieve UD-geodecision's code (some git credentials are expected)
 ARG git_token
 RUN git clone https://$git_token@github.com/VCityTeam/UD-geodecision.git
-RUN mv UD-geodecision/geodecision/geodecision .
-# Replace above line with
-# RUN cd UD-geodecision/geodecision && pip install . && cd ../..
+
+# Create conda virtual environment and install geodecision
+RUN conda env create -f ./UD-geodecision/geodecision/env.yml
 
 # The code to run when container is started:
 COPY get_analysed_roofs.py .

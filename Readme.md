@@ -1,9 +1,11 @@
+> ***Disclaimer: these dockers use the [geodecision decision making-tools Python package](https://github.com/VCityTeam/UD-geodecision)***
+
 # Docker a process
 In order to easily share and deploy our applications and processes, we use [Docker](https://www.docker.com/).
 
 Working with geospatial libraries (*like [geopandas](http://geopandas.org/)*) under Python could be problematic if they are not correctly installed.
 
-That's why we use the [Conda](https://conda.io/en/latest/) environnement to install them and create virtual environnement.
+That's why we use the [Conda](https://conda.io/en/latest/) environnement to install them and create virtual environnement. For more explanations about it, see the [warnings in the geodecision readme](https://github.com/VCityTeam/UD-geodecision#warningsdisclaimer). 
 
 ## Needs
 > To illustrate the process, we have created a DockerContext example: [TestGetParks_DockerContext](./TestGetParks_DockerContext).
