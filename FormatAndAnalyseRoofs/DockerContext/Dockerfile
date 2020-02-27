@@ -7,8 +7,6 @@ FROM continuumio/miniconda3
 #  - https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#create-env-file-manually
 #  - https://pythonspeed.com/articles/activate-conda-dockerfile/)
 RUN apt-get install unzip
-COPY env.yml .
-RUN conda env create -f env.yml
 
 # Retrieve the CityGML files from NextCloud server, and prepare them
 RUN mkdir data
