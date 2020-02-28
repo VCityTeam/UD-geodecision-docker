@@ -1,0 +1,9 @@
+{
+	"bbox": [4.81, 45.75, 4.9, 45.81],
+	"network_type": "walk",
+	"simplify": false,
+	"walk_distance": 5000,
+	"output_dir": "outputs",
+	"nodes_name": "nodes.json",
+	"edges_name": "edges.json"
+}

@@ -90,6 +90,9 @@ docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/O
 ```
 The outputs are placed in `data/outputs` subdirectory.
 
+#### Advice regarding JSON files
+In order to avoid errors, don't hesitate to validate your JSON file before running a docker, by using, for example, [JSONLint validator](https://jsonlint.com/) (*avoid sensitive information*).   
+
 #### Specific information
 > ***See the readme in the dockers' directories***
 
