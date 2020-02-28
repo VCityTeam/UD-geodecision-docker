@@ -28,9 +28,9 @@ This docker (*based as the others on geodecision package*):
 ## Build
 > *following command works inside the Dashboard/DockerContext directory*
 
-    ```bash
-    sudo docker build --build-arg git_token=<TOKEN> -t get_graph <DockerContext>
-    ```
+```bash
+sudo docker build --build-arg git_token=<TOKEN> -t get_graph <DockerContext>
+```
 
 ## Run
 > *following command works inside the Dashboard/ directory*
