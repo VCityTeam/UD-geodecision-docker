@@ -36,5 +36,5 @@ sudo docker build --build-arg git_token=<TOKEN> -t get_graph <DockerContext>
 > *following command works inside the Dashboard/ directory*
 
 ```bash
-sudo docker run --mount src=`pwd`,target=/Input,type=bind,type=bind -p 5006:5006 -it roofs_analyse
+sudo docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/Output,type=bind -it get_graph
 ```
