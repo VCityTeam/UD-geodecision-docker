@@ -88,19 +88,26 @@ Consider increasing this number up to 10 if the connection output is slightly un
             }
             ```
 * **Outputs**:
-    * nodes JSON file
-    * edges JSON file
+    * geospatial files (*can be several GeoJSON files or one GPKG file with several layers regarding the "output format parameter"*):
+        * isolines
+        * buffered isolines
+        * one file/layer per duration
+    * graph files:
+        * updated nodes JSON file
+        * updated edges JSON file
+    * possible errors:
+        * problematic nodes JSON file
 
 ## Build
 > *following command works inside the Dashboard/DockerContext directory*
 
 ```bash
-sudo docker build --build-arg git_token=<TOKEN> -t get_graph <DockerContext>
+sudo docker build --build-arg git_token=<TOKEN> -t accessibility <DockerContext>
 ```
 
 ## Run
 > *following command works inside the Dashboard/ directory*
 
 ```bash
-sudo docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/Output,type=bind -it get_graph
+sudo docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/Output,type=bind -it accessibility
 ```
