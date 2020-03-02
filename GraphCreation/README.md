@@ -13,7 +13,7 @@ This docker (*based as the others on geodecision package*):
 | ***bbox*** | array | bounding box to get graph, can be set with [Geofabrik Tile Calculator](http://tools.geofabrik.de/calc/) [left, bottom, right, top]   | *[4.81, 45.75, 4.9, 45.81]*|
 | ***network_type*** | str | type of the network | *"walk"*|
 | ***simplify*** | boolean | simplify or not the graph | *false*|
-| ***walk_distance*** | integer | distance in meters walkable within 1 hour | *5000*|
+| ***walk_distance*** | integer | distance in meters walkable within 1 hour (*required to value the edges*) | *5000*|
 | ***output_dir*** | str | output directory | *outputs*|
 | ***nodes_name*** | str | name of the nodes JSON file | *nodes.json*|
 | ***nodes_name*** | str | name of the edges JSON file | *edges.json*|
@@ -21,6 +21,19 @@ This docker (*based as the others on geodecision package*):
 ## Inputs/Outputs
 * **Input**:
     * ```config.json```
+        *  *example*:
+            ```json
+            {
+            	"bbox": [4.81, 45.75, 4.9, 45.81],
+            	"network_type": "walk",
+            	"simplify": false,
+            	"walk_distance": 5000,
+            	"output_dir": "outputs",
+            	"nodes_name": "nodes.json",
+            	"edges_name": "edges.json"
+            }
+            ```
+
 * **Outputs**:
     * nodes JSON file
     * edges JSON file

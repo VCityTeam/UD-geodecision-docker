@@ -1,23 +1,28 @@
 {
-	"epsg": {
-		"in":3946,
-		"out":3946
-	},
-	"dir":{
-		"input":"data/CityGML/",
-		"output":"data/outputs/"
-	},
-	"settings":{
-		"palette":"viridis",
-		"driver":"GPKG",
-		"attributes":[
-			"ADMINISTRA",
-		    "CULTE",
-		    "DEPLACEMEN",
-		    "ENSEIGNEME",
-		    "SANTE",
-		    "SPORT",
-		    "URGENCE"
-		]
-	}
+	"polygons_geojsonfile" : "./data/Accessibility/parks.geojson",
+	"graph_nodes_jsonfile" : "./data/Accessibility/nodes.json",
+	"graph_edges_jsonfile" : "./data/Accessibility/edges.json",
+	"epsg_graph" : 4326,
+	"epsg_input" : 2154,
+	"epsg_metric" : 2154,
+	"output_features_layername" : "parks",
+	"output_isolines_layername" : "isolines",
+	"output_buffered_isolines_layername" : "buffered_isolines",
+	"output_buffered_isolines_union_layername" : "buffered_isolines_union",
+	"output_folder" : "outputs",
+	"output_format" : "geopackage",
+	"trip_times" : [1,2],
+	"threshold" : 20,
+	"dist_split" : 100,
+	"knn" : 5,
+	"distance" : 5000,
+	"access_type" : "park",
+	"weight" : "time",
+	"prefix" : "Lyon_area_parks",
+	"columns_to_keep" : ["name", "id", "geometry"],
+	"id_column" : "id",
+	"distance_buffer" : 40,
+	"tolerance" : 10,
+	"lat" : "x",
+	"lon" : "y"
 }
