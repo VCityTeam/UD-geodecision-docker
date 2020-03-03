@@ -22,7 +22,7 @@ if os.path.isfile(input_config):
 
     with open(input_config) as f: 
        params = json.load(f)
-       output_dir = params["output_dir"]
+       output_dir = params[0]["output_dir"]
        target_output_dir = os.path.join("/Output", output_dir)
     
     if os.path.isdir(target_output_dir):

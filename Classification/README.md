@@ -1,113 +1,193 @@
 ## Presentation
 
 This docker (*based as the others on geodecision package*):
-* measures accessibility:
-    * from polygons (*origins, get points from contours*)
-    * with as set speed
-    * with a set of durations
-    * on a network
-* creates isolines and isochrones
-* returns spatial results files (*GeoJSON/GPKG/Shapefiles*)
+* makes automatic classifications for socio-economic data
+* returns Geopackage or GeoJSON classified spatial data
 
 ## Methodological approach
-Here is a brief history of our reflexions and methodolical approaches to connect the parks to the street network.
+Let explain by using an example: INSEE gridded data (*we use the gridded data (200m) FiLoSoFi in this docker*).
 
-| Name | Illustration | Details & Limits | Status |
-|:-----|:------------:|:---------------:|:------:|
-| V1 |<img src="../img/get_nodes_animation.gif" width="60%"> | Slow (*lot of spatial requests*), arbitrary buffer size, problematic with very long edges | *Rejected* |
-| V2 |<img src="../img/get_nodes_animation_V2.gif" width="60%"> | Generates a lot of points, must be adapted regarding the size of the park | *Rejected* |
-| V3 | <img src="../img/get_nodes_animation_V3.gif" width="60%"> | Better than the previous solution but may generate unnecessary nodes and edges | *Rejected* |
-| V4 | <img src="../img/get_nodes_animation_V4.gif" width="60%"> | Demands a more complicated implementation but is more efficient and precise | *Adopted* |
+| Name | Provider | License & terms of use | Warnings | Documentation | Variables |
+|:-----|:---------|:-----------------------|:---------|:--------------|:----------|
+| [Gridded data (*1km*) FiLoSoFi](https://www.insee.fr/fr/statistiques/4176293?sommaire=4176305#consulter-sommaire) | [INSEE](https://www.insee.fr/en/) | [Link](https://statistiques-locales.insee.fr/#c=contact) | [INSEE Warnings (*fr*)](https://statistiques-locales.insee.fr/#c=article) | [Link](https://www.insee.fr/fr/statistiques/4176293?sommaire=4176305#documentation) | [Dictionary of variables](https://www.insee.fr/fr/statistiques/4176293?sommaire=4176305#documentation) |
+| [Gridded data (*200m*) FiLoSoFi](https://www.insee.fr/fr/statistiques/4176290?sommaire=4176305#consulter) | [INSEE](https://www.insee.fr/en/) | [Link](https://statistiques-locales.insee.fr/#c=contact) | [INSEE Warnings (*fr*)](https://statistiques-locales.insee.fr/#c=article) | [Link](https://www.insee.fr/fr/statistiques/4176290?sommaire=4176305#documentation) | [Dictionary of variables](https://www.insee.fr/fr/statistiques/4176290?sommaire=4176305#dictionnaire) |
 
-![isolines](../img/accessibility_isolines.png)
 
 ## Configuration table
-> *This table explains the ```config.json``` file*
+> *This table explains the ```config.json``` file*. It contains list of settings (*because the ClassificationDataFrames from geodecision can loop on multiple variables and files*). The table shows a typical element of a list.
+
+"name": "INSEE_gridded_data_200m",
+"filepath": "./data/INSEE/Filosofi_2015_Lyon_Villeurbanne_200m_grid.geojson",
+"output_dir": "outputs",
+"driver": "GPKG",
 
 | name | type | description | example |
 |:-----|:----:|:------------|:-------:|
-| ***polygons_geojsonfile*** | str | Input polygons filepath | *"./data/Accessibility/parks.geojson"*|
-| ***graph_nodes_jsonfile*** | str | Input JSON nodes filepath | *"./data/Accessibility/nodes.json"*|
-| ***graph_edges_jsonfile*** | str | Input JSON edges filepath | *"./data/Accessibility/parks.json"*|
-| ***epsg_graph*** | int | EPSG of graph | *4326*|
-| ***epsg_input*** | int | EPSG of outputs | *2154*|
-| ***epsg_metric*** | int | Metric EPSG (*for precise distance calculations*) | *2154*|
-| ***output_isolines_layername*** | str | Name of the isolines layer | *"isolines"*|
-| ***output_buffered_isolines_layername*** | str | Name of the buffered isolines layer | *"buffered_isolines"*|
-| ***output_buffered_isolines_union_layername*** | str | Name of the buffered isolines union layer | *"buffered_isolines_union"*|
-| ***output_folder*** | str | Path to outputs folder | *"./data/outputs"*|
-| ***output_format*** | str | Format of the output (*"geojson" or "geopackage"*) | *"geopackage*|
-| ***trip_times*** | array | List of desired durations | *[1,2,3,4,5,6,7,8,9,10]*|
-| ***threshold*** | str | Max length (in meters) of a POI connection edge, POIs with connection edge beyond this length will be removed. | *20*|
-| ***dist_split*** | int | Distance in meters to split polygons' contour linestrings to create new origins points | *100*|
-| ***knn*** | int | k nearest neighbors to query for the nearest edge.
-Consider increasing this number up to 10 if the connection output is slightly unreasonable. But higher knn number will slow down the process (*see geodecision.graph documentation*) | *5*|
-| ***distance*** | str | Distance reachable in 60 minutes in meters (*used to set speed*) | *5000*|
-| ***access_type*** | str | Type of polygon that have to be connected to the network | *"park"*|
-| ***weight*** | str | Name of the weight column in data | *"time"*|
-| ***prefix*** | str | Prefix for the name of new nodes and edges files | *edges.json*|
-| ***columns_to_keep*** | array | List of columns name (*columns that will be kept*), Default: []. If default, keep all columns but geometry column other than Points | *["name", "id", "geometry"]*|
-| ***id_column*** | str | Name of the column with unique id for each polygon | *"id"*|
-| ***distance_buffer*** | real | Value in meters for buffering isolines | *40*|
-| ***tolerance*** | real | Tolerance used in possible simplification if <0, default: 0 | *10*|
-| ***lat*** | str | name of field with latitude coordinates in network nodes file | *"x"*|
-| ***lon*** | str | name of field with longitude coordinates in network nodes file | *"y"*|
+| ***name*** | str | name of the element & output name | *"INSEE_gridded_data_200m"*|
+| ***filepath*** | str | Input GeoJSON filepath | *"./data/INSEE/Filosofi_2015_Lyon_Villeurbanne_200m_grid.geojson"*|
+| ***output_dir*** | str | Output directory | *"outputs"*|
+| ***driver*** | int | Driver for output (*"GPKG" or "GeoJSON"*) | *"GPKG"*|
+| ***variables*** | dict | Dictionary of variables (*see [Variables](#variables) section below for a detailed example*). Each variable contains a boolean for classification (*if needed or not*) and a description, *see [below](#variable_structure_detailed_explanations)*) | ```"Ind": {"classification": true, "description": "Nombre d’individus"}``` |
 
+### Variable structure detailed explanations
+The module ```classification``` (*in geodecision*) is based on the ```mapclassify``` from Pysal.
+
+* [References](https://pysal.org/mapclassify/references.html)
+* [Automatic classification](https://pysal.org/mapclassify/generated/mapclassify.KClassifiers.html)
+
+This module allows to measure and determine the best classification and make classes for our data.
+
+This module requires a JSON parameters file as input (*with the structure illustrated below*)
+
+```json
+[{
+                "name": "name of the futur GeoDataFrame A",
+                "filepath": "path/to/GeoJSON file",
+                "output_dir": "outputs",
+                "dirver":"GPKG",
+                "variables": {
+                    "variable 1": {
+                        "classification": boolean (if true, make classification, else set to false),
+                        "description": "Short description of the var"
+                    },
+                    "variable 2": {
+                        "classification": boolean (if true, make classification, else set to false),
+                        "description": "Short description of the var"
+                },
+                {
+                    "name": "name of the futur GeoDataFrame A",
+                    "filepath": "path/to/GeoJSON file",
+                    "output_dir": "outputs",
+                    "dirver":"GPKG",
+                    "variables": {
+                        "variable 1": {
+                            "classification": boolean (if true, make classification, else set to false),
+                            "description": "Short description of the var"
+                        },
+                        "variable 2": {
+                            "classification": boolean (if true, make classification, else set to false),
+                            "description": "Short description of the var"
+                        }
+                    }
+                }
+            ]
+```
+
+#### [Variables](https://www.insee.fr/fr/statistiques/4176290?sommaire=4176305#dictionnaire)
+| Field | Details |
+|:------|:--------|
+| IdINSPIRE |  Identifiant Inspire du carreau de 200 m |
+| I_est_cr | Vaut 1 si le carreau de 200 m est imputé par une valeur approchée, 0 sinon |
+| Id_carr_n | Identifiant Inspire du carreau de niveau naturel auquel appartient le carreau de 200 m |
+| Groupe | Numéro du groupe auquel appartient le carreau (*voir [documentation](https://www.insee.fr/fr/statistiques/4176290?sommaire=4176305#doc)*) |
+| Depcom | Code commune, selon le code officiel géographique 2019, auquel sont rattachés la majorité des ménages du carreau |
+| Id_car2010 | Identifiant Inspire du carreau de 200 m figurant dans la base de données carroyées à 200 m diffusée avec la source RFL2010 (*le nombre de caractères peut être différent de celui de IdINSPIRE*) |
+| Id_carr1km | Identifiant Inspire du carreau de 1 km auquel appartient le carreau de 200 m |
+| I_pauv | Nombre de carreaux de 200 m compris dans le carreau de 1 km qui ont été traités pour respecter la confidentialité sur le nombre de ménages pauvres |
+| I_est_1km | Vaut 1 si le carreau est imputé par une valeur approchée, 0 ou 2 sinon |
+| Ind | Nombre d’individus |
+| Men | Nombre de ménages |
+| Men_pauv | Nombre de ménages pauvres |
+| Men_1ind | Nombre de ménages d’un seul individu |
+| Men_5ind | Nombre de ménages de 5 individus ou plus |
+| Men_prop | Nombre de ménages propriétaires |
+| Men_fmp | Nombre de ménages monoparentaux |
+| Ind_snv | Somme des niveaux de vie winsorisés des individus |
+| Men_surf | Somme de la surface des logements du carreau |
+| Men_coll | Nombre de ménages en logements collectifs |
+| Men_mais | Nombre de ménages en maison |
+| Log_av45 | Nombre de logements construits avant 1945 |
+| Log_45_70 | Nombre de logements construits entre 1945 et 1969 |
+| Log_70_90 | Nombre de logements construits entre 1970 et 1989 |
+| Log_ap90 | Nombre de logements construits depuis 1990 |
+| Log_inc | Nombre de logements dont la date de construction est inconnue |
+| Log_soc | Nombre de logements sociaux |
+| Ind_0_3 | Nombre d’individus de 0 à 3 ans |
+| Ind_4_5 | Nombre d’individus de 4 à 5 ans |
+| Ind_6_10 | Nombre d’individus de 6 à 10 ans |
+| Ind_11_17 | Nombre d’individus de 11 à 17 ans |
+| Ind_18_24 | Nombre d’individus de 18 à 24 ans |
+| Ind_25_39 | Nombre d’individus de 25 à 39 ans |
+| Ind_40_54 | Nombre d’individus de 40 à 54 ans |
+| Ind_55_64 | Nombre d’individus de 55 à 64 ans |
+| Ind_65_79 | Nombre d’individus de 65 à 79 ans |
+| Ind_80p | Nombre d’individus de 80 ans ou plus |
+| Ind_inc | Nombre d’individus dont l’âge est inconnu |
 
 ## Inputs/Outputs
 * **Input**:
+    * GeoJSON file(s) with socio-economic data
     * ```config.json```:
         * *example*:
             ```JSON
-            {
-            	"polygons_geojsonfile" : "./data/Accessibility/parks.geojson",
-            	"graph_nodes_jsonfile" : "./data/Accessibility/nodes.json",
-            	"graph_edges_jsonfile" : "./data/Accessibility/edges.json",
-            	"epsg_graph" : 4326,
-            	"epsg_input" : 2154,
-            	"epsg_metric" : 2154,
-            	"output_isolines_layername" : "isolines",
-            	"output_buffered_isolines_layername" : "buffered_isolines",
-            	"output_buffered_isolines_union_layername" : "buffered_isolines_union",
-            	"output_folder" : "./data/outputs",
-            	"output_format" : "geopackage",
-            	"trip_times" : [1,2,3,4,5,6,7,8,9,10],
-            	"threshold" : 20,
-            	"dist_split" : 100,
-            	"knn" : 5,
-            	"distance" : 5000,
-            	"access_type" : "park",
-            	"weight" : "time",
-            	"prefix" : "Lyon_area_parks",
-            	"columns_to_keep" : ["name", "id", "geometry"],
-            	"id_column" : "id",
-            	"distance_buffer" : 40,
-            	"tolerance" : 10,
-            	"lat" : "x",
-            	"lon" : "y"
-            }
+            [{
+                "name": "INSEE_gridded_data_200m",
+                "filepath": "./data/INSEE/Filosofi_2015_Lyon_Villeurbanne_200m_grid.geojson",
+                "output_dir": "outputs",
+                "driver": "GPKG",
+                "variables": {
+                    "Id_carr1km": {
+                        "classification": false,
+                        "description": "Identifiant Inspire du carreau de 1 km"
+                    },
+                    "Ind": {
+                        "classification": true,
+                        "description": "Nombre d’individus"
+                    },
+                    "Men": {
+                        "classification": true,
+                        "description": "Nombre de ménages"
+                    },
+                    "Men_pauv": {
+                        "classification": true,
+                        "description": "Nombre de ménages pauvres"
+                    },
+                    "Ind_snv": {
+                        "classification": true,
+                        "description": "Somme des niveaux de vie winsorisés des individus"
+                    },
+                    "Men_surf": {
+                        "classification": false,
+                        "description": "Somme de la surface des logements du carreau"
+                    },
+                    "Men_coll": {
+                        "classification": true,
+                        "description": "Nombre de ménages en logements collectifs"
+                    },
+                    "Men_mais": {
+                        "classification": true,
+                        "description": "Nombre de ménages en maison"
+                    },
+                    "Log_av45": {
+                        "classification": true,
+                        "description": "Nombre de logements construits avant 1945"
+                    },
+                    "Log_45_70": {
+                        "classification": true,
+                        "description": "Nombre de logements construits entre 1945 et 1969"
+                    },
+                    },
+                    "IdINSPIRE": {
+                        "classification": false,
+                        "description": ""
+                    }
+                }
+            }]
+
             ```
 * **Outputs**:
-    * geospatial files (*can be several GeoJSON files or one GPKG file with several layers regarding the "output format parameter"*):
-        * isolines
-        * buffered isolines
-        * one file/layer per duration
-    * graph files:
-        * updated nodes JSON file
-        * updated edges JSON file
-    * possible errors:
-        * problematic nodes JSON file
+    * geospatial files with classification (*GeoJSON, Geopackage*)
 
 ## Build
 > *following command works inside the Dashboard/DockerContext directory*
 
 ```bash
-sudo docker build --build-arg git_token=<TOKEN> -t accessibility <DockerContext>
+sudo docker build --build-arg git_token=<TOKEN> -t classification <DockerContext>
 ```
 
 ## Run
 > *following command works inside the Dashboard/ directory*
 
 ```bash
-sudo docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/Output,type=bind -it accessibility
+sudo docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/Output,type=bind -it classification
 ```
