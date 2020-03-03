@@ -12,9 +12,9 @@ RUN git clone https://$git_token@github.com/VCityTeam/UD-geodecision.git
 # Make outputs directory
 RUN mkdir outputs
 
-# Retrieve the accessibility files (nodes, edges, parks) from NextCloud server, and prepare them
+# Retrieve the socio-eco data (GeoJSON file) from NextCloud server, and prepare them
 RUN mkdir data
-RUN wget https://box.liris.cnrs.fr/s/dcpefNzW6WQqS9m/download && unzip download -d /data && rm download
+RUN wget https://box.liris.cnrs.fr/s/D2mdyEJa6coN3pX/download && unzip download -d /data && rm download
 
 # Create conda virtual environment and install geodecision
 # refer to
@@ -28,6 +28,6 @@ RUN conda env create -f ./UD-geodecision/geodecision/env.yml
 RUN rm -r ./UD-geodecision/.git
 
 # The code to run when container is started:
-COPY accessibility_measures.py .
+COPY classify.py .
 COPY entrypoint.py .
 ENTRYPOINT ["python", "/entrypoint.py"]

@@ -17,6 +17,9 @@ RUN git clone https://$git_token@github.com/VCityTeam/UD-geodecision.git
 
 RUN conda env create -f ./UD-geodecision/geodecision/env.yml
 
+# Remove .git directory
+RUN rm -r ./UD-geodecision/.git
+
 # The code to run when container is started:
 COPY get_graph.py .
 COPY entrypoint.py .

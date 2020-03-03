@@ -19,6 +19,9 @@ RUN git clone https://$git_token@github.com/VCityTeam/UD-geodecision.git
 # Create conda virtual environment and install geodecision
 RUN conda env create -f ./UD-geodecision/geodecision/env.yml
 
+# Remove .git directory
+RUN rm -r ./UD-geodecision/.git
+
 # Copy necessary file to run the docker
 COPY entrypoint.py .
 

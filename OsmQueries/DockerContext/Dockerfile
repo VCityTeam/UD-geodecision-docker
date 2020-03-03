@@ -14,6 +14,9 @@ RUN git clone https://$git_token@github.com/VCityTeam/UD-geodecision.git
 #     - https://pythonspeed.com/articles/activate-conda-dockerfile/)
 RUN conda env create -f ./UD-geodecision/geodecision/env.yml
 
+# Remove .git directory
+RUN rm -r ./UD-geodecision/.git
+
 # Output dir
 RUN mkdir /outputs
 
