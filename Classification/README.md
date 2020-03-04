@@ -4,6 +4,8 @@ This docker (*based as the others on geodecision package*):
 * makes automatic classifications for socio-economic data
 * returns Geopackage or GeoJSON classified spatial data
 
+> ***/!\ WARNING: could take a long time (2mns/variable)***
+
 ## Methodological approach
 Let explain by using an example: INSEE gridded data (*we use the gridded data (200m) FiLoSoFi in this docker*).
 
@@ -175,8 +177,13 @@ This module requires a JSON parameters file as input (*with the structure illust
             }]
 
             ```
+
 * **Outputs**:
     * geospatial files with classification (*GeoJSON, Geopackage*)
+    * ```classifications.log``` file containing:
+        * classification duration for each variable
+        * best classification method
+        * all the tested classifications with bins and counts (*to check the tested ones with the best one*)
 
 ## Build
 > *following command works inside the Dashboard/DockerContext directory*
