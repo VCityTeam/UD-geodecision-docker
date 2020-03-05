@@ -99,14 +99,14 @@ Consider increasing this number up to 10 if the connection output is slightly un
         * problematic nodes JSON file
 
 ## Build
-> *following command works inside the Dashboard/DockerContext directory*
+> *following command works inside the Accessibility/DockerContext/ directory*
 
 ```bash
 sudo docker build --build-arg git_token=<TOKEN> -t accessibility <DockerContext>
 ```
 
 ## Run
-> *following command works inside the Dashboard/ directory*
+> *following command works inside the Accessibility/ directory*
 
 ```bash
 sudo docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/Output,type=bind -it accessibility

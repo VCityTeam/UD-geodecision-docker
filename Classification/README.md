@@ -181,14 +181,14 @@ This module requires a JSON parameters file as input (*with the structure illust
         * all the tested classifications with bins and counts (*to check the tested ones with the best one*)
 
 ## Build
-> *following command works inside the Dashboard/DockerContext directory*
+> *following command works inside the Classification/DockerContext/ directory*
 
 ```bash
 sudo docker build --build-arg git_token=<TOKEN> -t classification <DockerContext>
 ```
 
 ## Run
-> *following command works inside the Dashboard/ directory*
+> *following command works inside the Classification/ directory*
 
 ```bash
 sudo docker run --mount src=`pwd`,target=/Input,type=bind --mount src=`pwd`,target=/Output,type=bind -it classification

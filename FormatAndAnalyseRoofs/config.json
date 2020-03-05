@@ -11,7 +11,7 @@
 		"palette":"viridis",
 		"driver":"GPKG",
 		"attributes":[
-			"ADMINISTRA",
+		    "ADMINISTRA",
 		    "CULTE",
 		    "DEPLACEMEN",
 		    "ENSEIGNEME",

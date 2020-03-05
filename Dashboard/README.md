@@ -2,7 +2,7 @@
 This docker allow to run a webmapping decision-making tools application locally through your favorite web browser.
 
 ## Configuration table
-> *This table explains the ```config.json``` file*. It contains list of settings (*because the ClassificationDataFrames from geodecision can loop on multiple variables and files*). The table shows a typical element of a list.
+> *This table explains the ```bokeh_config.json``` file*.
 
 ### Sections
 | name | type | description | example |
