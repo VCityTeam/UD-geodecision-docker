@@ -18,11 +18,6 @@ Let explain by using an example: INSEE gridded data (*we use the gridded data (2
 ## Configuration table
 > *This table explains the ```config.json``` file*. It contains list of settings (*because the ClassificationDataFrames from geodecision can loop on multiple variables and files*). The table shows a typical element of a list.
 
-"name": "INSEE_gridded_data_200m",
-"filepath": "./data/INSEE/Filosofi_2015_Lyon_Villeurbanne_200m_grid.geojson",
-"output_dir": "outputs",
-"driver": "GPKG",
-
 | name | type | description | example |
 |:-----|:----:|:------------|:-------:|
 | ***name*** | str | name of the element & output name | *"INSEE_gridded_data_200m"*|
