@@ -16,13 +16,23 @@ RUN mkdir outputs
 RUN mkdir data
 RUN wget https://box.liris.cnrs.fr/s/dcpefNzW6WQqS9m/download && unzip download -d /data && rm download
 
-# Create conda virtual environment and install geodecision
-# refer to
-#  - https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file
-#  - https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#create-env-file-manually
-#  - https://pythonspeed.com/articles/activate-conda-dockerfile/)
+# Create a directory channel
+RUN mkdir -p /tmp/my-conda-channel/linux-64
 
-RUN conda env create -f ./UD-geodecision/geodecision/env.yml
+# Copy the build file to the channel & architecture directory
+RUN cp UD-geodecision/geodecision/conda.build/linux-64/geodecision-0.1-0.tar.bz2 /tmp/my-conda-channel/linux-64/
+RUN conda install conda-build 
+
+# Index the channel
+RUN conda index /tmp/my-conda-channel/linux-64/
+
+# Create conda virtual environment
+RUN conda create --name geodecision
+SHELL ["conda", "run", "-n", "geodecision", "/bin/bash", "-c"]
+
+# Conda install geodecision package
+RUN conda config --append channels conda-forge
+RUN conda install -c file://tmp/my-conda-channel/ geodecision=0.1
 
 # Remove .git directory
 RUN rm -r ./UD-geodecision/.git

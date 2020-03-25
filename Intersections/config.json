@@ -1,0 +1,8 @@
+{
+    "output" : "outputs/results.gpkg",
+    "source_gpkg": "data/Dashboard/Roofs.gpkg",
+    "intersecting_gpkg": "data/Dashboard/iso_cut.gpkg",
+    "epsg":2154,
+    "quadrat_width": 200,
+    "driver": "GPKG"
+}

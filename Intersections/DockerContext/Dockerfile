@@ -34,12 +34,11 @@ RUN rm -r ./UD-geodecision/.git
 # Copy necessary file to run the docker
 COPY entrypoint.py .
 
-# Add dashboard app directory
-ADD dashboard ./dashboard
+# Add data directory
+RUN mkdir /data
 
 # Get the Dashboard files on NextCloud, download them, unzip them into data
-RUN mkdir /dashboard/data
-RUN wget https://box.liris.cnrs.fr/s/Z9GKRqFP6rw9D9F/download && unzip download -d /dashboard/data && rm download
+RUN wget https://box.liris.cnrs.fr/s/Z9GKRqFP6rw9D9F/download && unzip download -d /data && rm download
 
 # Run the entrypoint
 ENTRYPOINT ["python", "/entrypoint.py"]
