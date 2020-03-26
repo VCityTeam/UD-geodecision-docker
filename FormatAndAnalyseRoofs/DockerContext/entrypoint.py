@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+1. Call the conda run environment process
+2. Then run the Python code within this environment
+with JSON file as input (contains parameters for
+the Python classes and functions) in Input dir
+3. Copy/Paste Output from docker context to 
+host directory with "time&date" name to 
+avoid substitutions
+"""
+
 import subprocess
 import json
 import os
