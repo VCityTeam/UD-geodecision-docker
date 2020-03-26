@@ -30,7 +30,7 @@ def set_para(gdf, selection, sliders, layer):
             """
             
     str_ += """
-            <h4>Synthetic results for {} </h4>
+            <h4>Synthesis for layer {} rooftops elements </h4>
             <table>
             """.format(layer)
             

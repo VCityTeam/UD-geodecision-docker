@@ -14,7 +14,6 @@ from bokeh.models.widgets import Button, Select, DataTable, TableColumn, RadioGr
 from bokeh.layouts import row, widgetbox, column, Spacer
 from bokeh.io import curdoc
 import json
-import os
 import sys
 import geopandas as gpd
 
@@ -37,19 +36,31 @@ samples = params["figures_settings"]["samples"]
 group = params["figures_settings"]["group"]
 
 #Get one gdf
+columns = params["inputs"]["columns"]
+columns.append("geometry")
 gdfs = []
 for layer in params["inputs"]["layers"]:
     gdfs.append(
             gpd.GeoDataFrame.from_file(
                     params["inputs"]["roofs"],
                     layer=layer
-                    )
+                    )[columns]
             )
 gdf = gpd.pd.concat(gdfs)
 
+#Add alpha column for futur use
+gdf["alpha"] = 0.5
+
 #Source for map
-# Reprojection to fit with Bokeh tiles
+## Reprojection to fit with Bokeh tiles
 gdf = gdf.to_crs(epsg=3857)
+## Get intersections and update gdf
+ids = params["inputs"]["unique_id"]
+classes = params["inputs"]["classes"]
+intersections = gpd.GeoDataFrame.from_file(
+    params["inputs"]["intersections"]
+    )[[ids, classes]]
+gdf = gdf.merge(intersections[[ids, classes]], on=ids)
 
 #Manage layers
 layers = list(gdf[group].unique())
@@ -111,9 +122,23 @@ y_range = (
 #############
 # FUNCTIONS #
 #############
+min_iso = 0
+max_iso = 0
+    
+def set_alpha(x):
+    if min_iso == 0 and (x[max_iso] is True):
+        alpha = 0.5
+    elif (x[min_iso] is True) and (x[max_iso] is True):
+        alpha = 0.5
+    else:
+        alpha = 0.1
+        
+    return alpha
+    
 def update(new):
     button.disabled = True
     tmp = None
+    #Loc on selection range sliders min and max
     for k,v in sliders.items():
         if v.value is not None:
             start = v.value[0]
@@ -128,10 +153,19 @@ def update(new):
                         (tmp[k] >= start) 
                         & (tmp[k] < end)
                         ]
+    #Loc on isochrone range sliders min and max
+    global min_iso
+    global max_iso
+    min_iso = iso_progression_slider.value[0]
+    max_iso = iso_progression_slider.value[1]
+    if tmp is not None:
+        tmp["alpha"] = tmp["classes"].map(set_alpha)
     
     if radio_group.active == 1:
         tmp = tmp.loc[tmp["public_access"] == True]
     tmp_map = tmp.loc[tmp[group] == select.value]
+    
+    #TODO: change here the group for tmp with alpha == 0.1
     hist_source.data = get_hist_source(tmp, group)
     geo_source.geojson = gdf_to_geosource(tmp_map)
     table_source.data = tmp_map[params["figures_settings"]["table_columns"]]
@@ -210,7 +244,7 @@ hist = figure(
     plot_height=400, 
     plot_width=600,
     toolbar_location=None, 
-    title="Sums by place"
+    title="Number of rooftops's polygons per area"
 )
 
 hist.vbar(
@@ -308,7 +342,7 @@ buildings = map_.patches(
         "ys", 
         fill_color="blue",
         line_color="white",
-        fill_alpha = 0.5,
+        fill_alpha = "alpha",
         line_alpha=0.2,
         line_width=0.1,
         source=geo_source,
@@ -364,6 +398,16 @@ data_table = DataTable(
 #RADIOGROUP
 radio_group = RadioGroup(
         labels=["All buildings", "Only public access buildings"], active=0)
+
+#DIV
+sub_title = Div(
+    text="""
+    Rooftops's polygons filtering. 
+    A
+    """, 
+    width=200, 
+    height=100
+    )
 
 #PARAGRAPH
 para = Div(
