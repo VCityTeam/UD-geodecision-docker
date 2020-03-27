@@ -16,9 +16,11 @@ from bokeh.io import curdoc
 import json
 import sys
 import geopandas as gpd
+from shapely.geometry import LineString
 
-   
-from geodecision import gdf_to_geosource, make_sliders, get_hist_source
+#TODO change to from geodecision after tests
+from bokeh_snippets import make_sliders, get_hist_source
+from operations import gdf_to_geosource
 from constants import set_para
 
 
@@ -48,8 +50,18 @@ for layer in params["inputs"]["layers"]:
             )
 gdf = gpd.pd.concat(gdfs)
 
+#Simplify with topology preservation in order to improve performance
+gdf["geometry"] = gdf["geometry"].simplify(0.1)
+#Transform polygons to LineStrings in order to improve performance with webgl
+##see https://docs.bokeh.org/en/latest/docs/user_guide/webgl.html#support
+gdf["geometry"] = gdf["geometry"].map(lambda x: LineString(x.exterior.coords))
+
+
 #Add alpha column for futur use
-gdf["alpha"] = 0.5
+gdf["alpha"] = 1.0
+
+#Set angles max base value (limit number of polygons on screen)
+angles_value_max_base = 30.0
 
 #Source for map
 ## Reprojection to fit with Bokeh tiles
@@ -62,6 +74,12 @@ intersections = gpd.GeoDataFrame.from_file(
     )[[ids, classes]]
 gdf = gdf.merge(intersections[[ids, classes]], on=ids)
 
+#Split dict column into multiple columns
+gdf[classes] = gdf[classes].map(json.loads)
+df = gpd.pd.DataFrame.from_records(gdf[classes].tolist())
+for col in list(df.columns):
+    gdf[col] = df[col]
+
 #Manage layers
 layers = list(gdf[group].unique())
 default = layers[0]
@@ -69,7 +87,10 @@ default = layers[0]
 ## Transform to GeoJSONDataSource
 geo_source = GeoJSONDataSource(
         geojson=gdf_to_geosource(
-                gdf.loc[gdf[group] == default]
+                gdf.loc[
+                    (gdf[group] == default)
+                    & (gdf["angles"] <= angles_value_max_base)
+                    ]
                 )
         )
 ## Source for Datatable
@@ -83,14 +104,18 @@ table_source = ColumnDataSource(
 access = {}
 access_slider_control = {} 
 for i,layer in enumerate(params["inputs"]["accessibility"]["layers"]):
+    #Try to improve performance with simplification
+    ##see https://shapely.readthedocs.io/en/latest/manual.html#object.simplify
+    tmp = gpd.GeoDataFrame.from_file(
+        params["inputs"]["accessibility"]["isochrones"],
+        layer=layer
+        ).to_crs(epsg=3857)
+    tmp["geometry"] = tmp["geometry"].simplify(0.1)
     access[layer] = GeoJSONDataSource(
-            geojson=gdf_to_geosource(
-                    gpd.GeoDataFrame.from_file(
-                            params["inputs"]["accessibility"]["isochrones"],
-                            layer=layer
-                            ).to_crs(epsg=3857)
+                geojson=gdf_to_geosource(
+                        tmp
+                        )
                     )
-                )
     access_slider_control[i] = layer
 
 ### Get origins
@@ -122,18 +147,22 @@ y_range = (
 #############
 # FUNCTIONS #
 #############
-min_iso = 0
-max_iso = 0
+# min_iso = 0
+# max_iso = 0
     
-def set_alpha(x):
-    if min_iso == 0 and (x[max_iso] is True):
-        alpha = 0.5
-    elif (x[min_iso] is True) and (x[max_iso] is True):
-        alpha = 0.5
-    else:
-        alpha = 0.1
+# def set_alpha(x):
+#     x = json.loads(x)
+#     if int(min_iso) == 0:
+#         if x[max_iso] is True:
+#             alpha = 1.0
+#         else: alpha = 0.2
+#     else:
+#         if (x[min_iso] is True) and (x[max_iso] is True):
+#             alpha = 1.0
+#         else:
+#             alpha = 0.2
         
-    return alpha
+#     return alpha
     
 def update(new):
     button.disabled = True
@@ -154,13 +183,30 @@ def update(new):
                         & (tmp[k] < end)
                         ]
     #Loc on isochrone range sliders min and max
-    global min_iso
-    global max_iso
-    min_iso = iso_progression_slider.value[0]
-    max_iso = iso_progression_slider.value[1]
+    # global min_iso
+    # global max_iso
+    min_iso = str(int(round(iso_progression_slider.value[0])))
+    max_iso = str(int(round(iso_progression_slider.value[1])))
     if tmp is not None:
-        tmp["alpha"] = tmp["classes"].map(set_alpha)
-    
+        if min_iso == "0": 
+            inside = tmp.loc[tmp[max_iso] == True].index
+            outside = tmp.loc[tmp[max_iso] == False].index
+        else:
+            inside = tmp.loc[
+                (tmp[min_iso] == True) 
+                & (tmp[max_iso] == True)
+                ].index
+            outside = tmp.loc[
+                (tmp[min_iso] == False) 
+                & (tmp[max_iso] == False)
+                ].index
+        
+        # tmp["alpha"] = tmp["classes"].map(set_alpha)
+        for index in inside:
+            tmp.at[index, "alpha"] = 1.0
+        for index in outside:
+            tmp.at[index, "alpha"] = 0.2
+        
     if radio_group.active == 1:
         tmp = tmp.loc[tmp["public_access"] == True]
     tmp_map = tmp.loc[tmp[group] == select.value]
@@ -263,7 +309,7 @@ hist.vbar(
 hist.xgrid.grid_line_color = None
 hist.legend.orientation = "horizontal"
 hist.legend.location = "top_center"
-hist.xaxis.major_label_orientation = 1
+hist.xaxis.major_label_orientation = 1        
 
 #MAP
 map_ = figure(
@@ -318,7 +364,8 @@ for i, (layer, source) in enumerate(access.items()):
                 line_width=0.0,
                 source=source,
                 name=layer,
-                visible=visible
+                visible=visible,
+                legend_label=layer
                 )
             )
 ## Create linked opacity isochrones slider
@@ -337,21 +384,32 @@ for glyphs in access_glyphs:
     iso_alpha_slider.js_link("value", glyphs.glyph, "fill_alpha")
 
 #Add building patches
-buildings = map_.patches(
+buildings = map_.multi_line(
         "xs", 
         "ys", 
-        fill_color="blue",
-        line_color="white",
-        fill_alpha = "alpha",
-        line_alpha=0.2,
-        line_width=0.1,
+        line_color="blue",
+        alpha="alpha",
+        width=0.2,
         source=geo_source,
         name="buildings",
         legend_label="Roofs"
         )
 
+# buildings = map_.patches(
+#         "xs", 
+#         "ys", 
+#         fill_color="blue",
+#         line_color="white",
+#         fill_alpha = "alpha",
+#         line_alpha=0.2,
+#         line_width=0.1,
+#         source=geo_source,
+#         name="buildings",
+#         legend_label="Roofs"
+#         )
+
 #Link color picker to buildings color glyph
-color_picker.js_link("color", buildings.glyph, "fill_color")
+color_picker.js_link("color", buildings.glyph, "line_color")
 
 #Add origins patches
 origins = map_.patches(
@@ -433,6 +491,10 @@ hover = HoverTool(
         names = ["buildings"]
         )
 map_.add_tools(hover)
+
+
+#Change angles max value
+sliders["angles"].value = (0,angles_value_max_base)
 
 widgetbox(
         [x for x in sliders.values()]
