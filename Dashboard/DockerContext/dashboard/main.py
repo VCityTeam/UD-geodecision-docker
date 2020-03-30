@@ -20,7 +20,7 @@ from shapely.geometry import LineString
 
 #TODO change to from geodecision after tests
 from bokeh_snippets import make_sliders, get_hist_source
-from operations import gdf_to_geosource
+from geodecision import gdf_to_geosource
 from constants import set_para
 
 
@@ -57,8 +57,9 @@ gdf["geometry"] = gdf["geometry"].simplify(0.1)
 gdf["geometry"] = gdf["geometry"].map(lambda x: LineString(x.exterior.coords))
 
 
-#Add alpha column for futur use
+#Add alpha & color columns for futur use
 gdf["alpha"] = 1.0
+gdf["color"] = "white"
 
 #Set angles max base value (limit number of polygons on screen)
 angles_value_max_base = 30.0
@@ -77,8 +78,10 @@ gdf = gdf.merge(intersections[[ids, classes]], on=ids)
 #Split dict column into multiple columns
 gdf[classes] = gdf[classes].map(json.loads)
 df = gpd.pd.DataFrame.from_records(gdf[classes].tolist())
+cols =[]
 for col in list(df.columns):
     gdf[col] = df[col]
+    cols.append(col)
 
 #Manage layers
 layers = list(gdf[group].unique())
@@ -146,24 +149,7 @@ y_range = (
 
 #############
 # FUNCTIONS #
-#############
-# min_iso = 0
-# max_iso = 0
-    
-# def set_alpha(x):
-#     x = json.loads(x)
-#     if int(min_iso) == 0:
-#         if x[max_iso] is True:
-#             alpha = 1.0
-#         else: alpha = 0.2
-#     else:
-#         if (x[min_iso] is True) and (x[max_iso] is True):
-#             alpha = 1.0
-#         else:
-#             alpha = 0.2
-        
-#     return alpha
-    
+#############    
 def update(new):
     button.disabled = True
     tmp = None
@@ -183,38 +169,33 @@ def update(new):
                         & (tmp[k] < end)
                         ]
     #Loc on isochrone range sliders min and max
-    # global min_iso
-    # global max_iso
     min_iso = str(int(round(iso_progression_slider.value[0])))
     max_iso = str(int(round(iso_progression_slider.value[1])))
     if tmp is not None:
         if min_iso == "0": 
-            inside = tmp.loc[tmp[max_iso] == True].index
-            outside = tmp.loc[tmp[max_iso] == False].index
+            inside = tmp.loc[tmp[max_iso] == True]
+            outside = tmp.loc[tmp[max_iso] == False]
         else:
             inside = tmp.loc[
                 (tmp[min_iso] == True) 
                 & (tmp[max_iso] == True)
-                ].index
+                ]
             outside = tmp.loc[
                 (tmp[min_iso] == False) 
                 & (tmp[max_iso] == False)
-                ].index
+                ]
         
-        # tmp["alpha"] = tmp["classes"].map(set_alpha)
-        for index in inside:
-            tmp.at[index, "alpha"] = 1.0
-        for index in outside:
-            tmp.at[index, "alpha"] = 0.2
+        for index in outside.index:
+            tmp.at[index, "color"] = "red"
         
     if radio_group.active == 1:
         tmp = tmp.loc[tmp["public_access"] == True]
     tmp_map = tmp.loc[tmp[group] == select.value]
     
-    #TODO: change here the group for tmp with alpha == 0.1
+    #Get elements for map and synthesis
     hist_source.data = get_hist_source(tmp, group)
     geo_source.geojson = gdf_to_geosource(tmp_map)
-    table_source.data = tmp_map[params["figures_settings"]["table_columns"]]
+    table_source.data = inside[params["figures_settings"]["table_columns"]]
     button.disabled = False
 
     para.text = set_para(
@@ -223,7 +204,9 @@ def update(new):
                     ].loc[gdf[group] == select.value],
             tmp_map,
             sliders,
-            select.value
+            select.value,
+            min_iso,
+            max_iso
             )
 
 def reset(new):
@@ -262,12 +245,7 @@ iso_progression_slider.on_change("value",get_iso_layer)
 #Create buttons
 button = Button(label="Filter", button_type="success")
 reset_button = Button(label="Reset", button_type="warning")
-#Create color picker for buildings
-color_picker = ColorPicker(
-        color="#ff4466", 
-        title="Choose buildings color:", 
-        width=200
-        )
+
 #Create color picker for isochrones
 color_picker_iso = ColorPicker(
         color="#ff4466", 
@@ -298,7 +276,7 @@ hist.vbar(
        top="sums", 
        width=0.9, 
        source=hist_source, 
-       legend_field="sums",
+       legend_field="labels",
        line_color='white', 
        fill_color=factor_cmap(
            "groups", 
@@ -306,10 +284,14 @@ hist.vbar(
            factors=hist_source.data["groups"]
        )
       )
+
 hist.xgrid.grid_line_color = None
-hist.legend.orientation = "horizontal"
-hist.legend.location = "top_center"
-hist.xaxis.major_label_orientation = 1        
+hist.legend.orientation = "vertical"
+hist.legend.label_text_font_size = "8pt"
+hist.xaxis.major_label_orientation = 1
+new_legend = hist.legend[0]
+hist.legend[0] = None
+hist.add_layout(new_legend, 'right')
 
 #MAP
 map_ = figure(
@@ -387,29 +369,13 @@ for glyphs in access_glyphs:
 buildings = map_.multi_line(
         "xs", 
         "ys", 
-        line_color="blue",
+        line_color="color",
         alpha="alpha",
         width=0.2,
         source=geo_source,
         name="buildings",
         legend_label="Roofs"
         )
-
-# buildings = map_.patches(
-#         "xs", 
-#         "ys", 
-#         fill_color="blue",
-#         line_color="white",
-#         fill_alpha = "alpha",
-#         line_alpha=0.2,
-#         line_width=0.1,
-#         source=geo_source,
-#         name="buildings",
-#         legend_label="Roofs"
-#         )
-
-#Link color picker to buildings color glyph
-color_picker.js_link("color", buildings.glyph, "line_color")
 
 #Add origins patches
 origins = map_.patches(
@@ -473,15 +439,18 @@ para = Div(
         width=600, 
         height=400
         )
+min_iso = str(int(round(iso_progression_slider.value[0])))
+max_iso = str(int(round(iso_progression_slider.value[1])))
+col_for_para = params["figures_settings"]["table_columns"]
+col_for_para.extend(cols)
+
 para.text = set_para(
-            gdf[
-                    params["figures_settings"]["table_columns"]
-                    ].loc[
-                            gdf[group] == select.value
-                            ],
+            gdf[col_for_para].loc[gdf[group] == select.value],
             gdf.loc[gdf[group] == default],
             sliders,
-            select.value
+            select.value,
+            min_iso,
+            max_iso
             )
 
 #Widgets
@@ -505,7 +474,6 @@ widgets = [select, radio_group]
 widgets.extend([x for x in sliders.values()])
 widgets.extend([button, reset_button])
 widgets_map = [
-                color_picker,
                 color_picker_iso,
                 back_slider,
                 iso_alpha_slider,
@@ -515,12 +483,12 @@ widgets_map = [
 #Panels and tabs
 tab_map = Panel(
         child=row(
-                [
-                        map_, 
-                        Spacer(width=50),
-                        widgetbox(widgets_map)
-                        ]
-                ),
+            [
+                map_, 
+                Spacer(width=50),
+                widgetbox(widgets_map)
+                ]
+            ),
         title="Map"
         )
 tab_global = Panel(
