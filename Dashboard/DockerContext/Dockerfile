@@ -10,6 +10,19 @@ RUN apt-get install unzip
 ARG git_token
 RUN git clone https://$git_token@github.com/VCityTeam/UD-geodecision.git
 
+# Remove .git directory
+RUN rm -r ./UD-geodecision/.git
+
+# Copy necessary file to run the docker
+COPY entrypoint.py .
+
+# Add dashboard app directory
+ADD dashboard ./dashboard
+
+# Get the Dashboard files on NextCloud, download them, unzip them into data
+RUN mkdir /dashboard/data
+RUN wget https://box.liris.cnrs.fr/s/7gfzrXnJR6xsZA5/download && unzip download -d /dashboard/data && rm download
+
 # Create a directory channel
 RUN mkdir -p /tmp/my-conda-channel/linux-64
 
@@ -27,19 +40,6 @@ SHELL ["conda", "run", "-n", "geodecision", "/bin/bash", "-c"]
 # Conda install geodecision package
 RUN conda config --append channels conda-forge
 RUN conda install -c file://tmp/my-conda-channel/ geodecision=0.1
-
-# Remove .git directory
-RUN rm -r ./UD-geodecision/.git
-
-# Copy necessary file to run the docker
-COPY entrypoint.py .
-
-# Add dashboard app directory
-ADD dashboard ./dashboard
-
-# Get the Dashboard files on NextCloud, download them, unzip them into data
-RUN mkdir /dashboard/data
-RUN wget https://box.liris.cnrs.fr/s/Z9GKRqFP6rw9D9F/download && unzip download -d /dashboard/data && rm download
 
 # Run the entrypoint
 ENTRYPOINT ["python", "/entrypoint.py"]

@@ -18,7 +18,6 @@ import sys
 import geopandas as gpd
 from shapely.geometry import LineString
 
-#TODO change to from geodecision after tests
 from bokeh_snippets import make_sliders, get_hist_source
 from geodecision import gdf_to_geosource
 from constants import set_para

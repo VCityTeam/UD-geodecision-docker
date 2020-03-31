@@ -101,3 +101,6 @@ In order to avoid errors, don't hesitate to validate your JSON file before runni
    ```bash
    docker run --entrypoint /bin/bash -it liris/geodecision
    ```
+
+## Dockers' Organisation
+![relations](./img/dockers_relation.png)
