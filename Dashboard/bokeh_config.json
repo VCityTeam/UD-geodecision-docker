@@ -1,7 +1,25 @@
 {
 	"inputs": {
 		"roofs": "dashboard/data/Dashboard/Roofs.gpkg",
+		"intersections": "dashboard/data/Dashboard/results.gpkg",
 		"background": "dashboard/background.geojson",
+		"unique_id": "ids",
+                "classes": "classes",
+                "columns": [
+                        "ids",
+			"building_ids",
+			"ADRESSE",
+                        "NOMCOMMUNE",
+			"attribute",
+			"public_access",
+			"angles",
+			"heights",
+			"nb_levels",
+			"area",
+			"total_surface",
+			"min_width",
+			"compactness"
+		],
 		"accessibility": {
 			"origins": "dashboard/data/Dashboard/parks.geojson",
 			"isochrones": "dashboard/data/Dashboard/iso_cut.gpkg",

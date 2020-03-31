@@ -14,12 +14,12 @@ from bokeh.models.widgets import Button, Select, DataTable, TableColumn, RadioGr
 from bokeh.layouts import row, widgetbox, column, Spacer
 from bokeh.io import curdoc
 import json
-import os
 import sys
 import geopandas as gpd
+from shapely.geometry import LineString
 
-   
-from geodecision import gdf_to_geosource, make_sliders, get_hist_source
+from bokeh_snippets import make_sliders, get_hist_source
+from geodecision import gdf_to_geosource
 from constants import set_para
 
 
@@ -37,19 +37,50 @@ samples = params["figures_settings"]["samples"]
 group = params["figures_settings"]["group"]
 
 #Get one gdf
+columns = params["inputs"]["columns"]
+columns.append("geometry")
 gdfs = []
 for layer in params["inputs"]["layers"]:
     gdfs.append(
             gpd.GeoDataFrame.from_file(
                     params["inputs"]["roofs"],
                     layer=layer
-                    )
+                    )[columns]
             )
 gdf = gpd.pd.concat(gdfs)
 
+#Simplify with topology preservation in order to improve performance
+gdf["geometry"] = gdf["geometry"].simplify(0.1)
+#Transform polygons to LineStrings in order to improve performance with webgl
+##see https://docs.bokeh.org/en/latest/docs/user_guide/webgl.html#support
+gdf["geometry"] = gdf["geometry"].map(lambda x: LineString(x.exterior.coords))
+
+
+#Add alpha & color columns for futur use
+gdf["alpha"] = 1.0
+gdf["color"] = "white"
+
+#Set angles max base value (limit number of polygons on screen)
+angles_value_max_base = 30.0
+
 #Source for map
-# Reprojection to fit with Bokeh tiles
+## Reprojection to fit with Bokeh tiles
 gdf = gdf.to_crs(epsg=3857)
+## Get intersections and update gdf
+ids = params["inputs"]["unique_id"]
+classes = params["inputs"]["classes"]
+intersections = gpd.GeoDataFrame.from_file(
+    params["inputs"]["intersections"]
+    )[[ids, classes]]
+gdf = gdf.merge(intersections[[ids, classes]], on=ids)
+
+#Split dict column into multiple columns
+gdf[classes] = gdf[classes].map(json.loads)
+df = gpd.pd.DataFrame.from_records(gdf[classes].tolist())
+cols =[]
+for col in list(df.columns):
+    gdf[col] = df[col]
+    cols.append(col)
 
 #Manage layers
 layers = list(gdf[group].unique())
@@ -58,7 +89,10 @@ default = layers[0]
 ## Transform to GeoJSONDataSource
 geo_source = GeoJSONDataSource(
         geojson=gdf_to_geosource(
-                gdf.loc[gdf[group] == default]
+                gdf.loc[
+                    (gdf[group] == default)
+                    & (gdf["angles"] <= angles_value_max_base)
+                    ]
                 )
         )
 ## Source for Datatable
@@ -72,14 +106,18 @@ table_source = ColumnDataSource(
 access = {}
 access_slider_control = {} 
 for i,layer in enumerate(params["inputs"]["accessibility"]["layers"]):
+    #Try to improve performance with simplification
+    ##see https://shapely.readthedocs.io/en/latest/manual.html#object.simplify
+    tmp = gpd.GeoDataFrame.from_file(
+        params["inputs"]["accessibility"]["isochrones"],
+        layer=layer
+        ).to_crs(epsg=3857)
+    tmp["geometry"] = tmp["geometry"].simplify(0.1)
     access[layer] = GeoJSONDataSource(
-            geojson=gdf_to_geosource(
-                    gpd.GeoDataFrame.from_file(
-                            params["inputs"]["accessibility"]["isochrones"],
-                            layer=layer
-                            ).to_crs(epsg=3857)
+                geojson=gdf_to_geosource(
+                        tmp
+                        )
                     )
-                )
     access_slider_control[i] = layer
 
 ### Get origins
@@ -110,10 +148,11 @@ y_range = (
 
 #############
 # FUNCTIONS #
-#############
+#############    
 def update(new):
     button.disabled = True
     tmp = None
+    #Loc on selection range sliders min and max
     for k,v in sliders.items():
         if v.value is not None:
             start = v.value[0]
@@ -128,13 +167,34 @@ def update(new):
                         (tmp[k] >= start) 
                         & (tmp[k] < end)
                         ]
-    
+    #Loc on isochrone range sliders min and max
+    min_iso = str(int(round(iso_progression_slider.value[0])))
+    max_iso = str(int(round(iso_progression_slider.value[1])))
+    if tmp is not None:
+        if min_iso == "0": 
+            inside = tmp.loc[tmp[max_iso] == True]
+            outside = tmp.loc[tmp[max_iso] == False]
+        else:
+            inside = tmp.loc[
+                (tmp[min_iso] == True) 
+                & (tmp[max_iso] == True)
+                ]
+            outside = tmp.loc[
+                (tmp[min_iso] == False) 
+                & (tmp[max_iso] == False)
+                ]
+        
+        for index in outside.index:
+            tmp.at[index, "color"] = "red"
+        
     if radio_group.active == 1:
         tmp = tmp.loc[tmp["public_access"] == True]
     tmp_map = tmp.loc[tmp[group] == select.value]
+    
+    #Get elements for map and synthesis
     hist_source.data = get_hist_source(tmp, group)
     geo_source.geojson = gdf_to_geosource(tmp_map)
-    table_source.data = tmp_map[params["figures_settings"]["table_columns"]]
+    table_source.data = inside[params["figures_settings"]["table_columns"]]
     button.disabled = False
 
     para.text = set_para(
@@ -143,7 +203,9 @@ def update(new):
                     ].loc[gdf[group] == select.value],
             tmp_map,
             sliders,
-            select.value
+            select.value,
+            min_iso,
+            max_iso
             )
 
 def reset(new):
@@ -182,12 +244,7 @@ iso_progression_slider.on_change("value",get_iso_layer)
 #Create buttons
 button = Button(label="Filter", button_type="success")
 reset_button = Button(label="Reset", button_type="warning")
-#Create color picker for buildings
-color_picker = ColorPicker(
-        color="#ff4466", 
-        title="Choose buildings color:", 
-        width=200
-        )
+
 #Create color picker for isochrones
 color_picker_iso = ColorPicker(
         color="#ff4466", 
@@ -210,7 +267,7 @@ hist = figure(
     plot_height=400, 
     plot_width=600,
     toolbar_location=None, 
-    title="Sums by place"
+    title="Number of rooftops's polygons per area"
 )
 
 hist.vbar(
@@ -218,7 +275,7 @@ hist.vbar(
        top="sums", 
        width=0.9, 
        source=hist_source, 
-       legend_field="sums",
+       legend_field="labels",
        line_color='white', 
        fill_color=factor_cmap(
            "groups", 
@@ -226,10 +283,14 @@ hist.vbar(
            factors=hist_source.data["groups"]
        )
       )
+
 hist.xgrid.grid_line_color = None
-hist.legend.orientation = "horizontal"
-hist.legend.location = "top_center"
+hist.legend.orientation = "vertical"
+hist.legend.label_text_font_size = "8pt"
 hist.xaxis.major_label_orientation = 1
+new_legend = hist.legend[0]
+hist.legend[0] = None
+hist.add_layout(new_legend, 'right')
 
 #MAP
 map_ = figure(
@@ -284,7 +345,8 @@ for i, (layer, source) in enumerate(access.items()):
                 line_width=0.0,
                 source=source,
                 name=layer,
-                visible=visible
+                visible=visible,
+                legend_label=layer
                 )
             )
 ## Create linked opacity isochrones slider
@@ -303,21 +365,16 @@ for glyphs in access_glyphs:
     iso_alpha_slider.js_link("value", glyphs.glyph, "fill_alpha")
 
 #Add building patches
-buildings = map_.patches(
+buildings = map_.multi_line(
         "xs", 
         "ys", 
-        fill_color="blue",
-        line_color="white",
-        fill_alpha = 0.5,
-        line_alpha=0.2,
-        line_width=0.1,
+        line_color="color",
+        alpha="alpha",
+        width=0.2,
         source=geo_source,
         name="buildings",
         legend_label="Roofs"
         )
-
-#Link color picker to buildings color glyph
-color_picker.js_link("color", buildings.glyph, "fill_color")
 
 #Add origins patches
 origins = map_.patches(
@@ -365,21 +422,34 @@ data_table = DataTable(
 radio_group = RadioGroup(
         labels=["All buildings", "Only public access buildings"], active=0)
 
+#DIV
+sub_title = Div(
+    text="""
+    Rooftops's polygons filtering. 
+    A
+    """, 
+    width=200, 
+    height=100
+    )
+
 #PARAGRAPH
 para = Div(
         text="""""",
         width=600, 
         height=400
         )
+min_iso = str(int(round(iso_progression_slider.value[0])))
+max_iso = str(int(round(iso_progression_slider.value[1])))
+col_for_para = params["figures_settings"]["table_columns"]
+col_for_para.extend(cols)
+
 para.text = set_para(
-            gdf[
-                    params["figures_settings"]["table_columns"]
-                    ].loc[
-                            gdf[group] == select.value
-                            ],
+            gdf[col_for_para].loc[gdf[group] == select.value],
             gdf.loc[gdf[group] == default],
             sliders,
-            select.value
+            select.value,
+            min_iso,
+            max_iso
             )
 
 #Widgets
@@ -390,6 +460,10 @@ hover = HoverTool(
         )
 map_.add_tools(hover)
 
+
+#Change angles max value
+sliders["angles"].value = (0,angles_value_max_base)
+
 widgetbox(
         [x for x in sliders.values()]
     )
@@ -399,7 +473,6 @@ widgets = [select, radio_group]
 widgets.extend([x for x in sliders.values()])
 widgets.extend([button, reset_button])
 widgets_map = [
-                color_picker,
                 color_picker_iso,
                 back_slider,
                 iso_alpha_slider,
@@ -409,12 +482,12 @@ widgets_map = [
 #Panels and tabs
 tab_map = Panel(
         child=row(
-                [
-                        map_, 
-                        Spacer(width=50),
-                        widgetbox(widgets_map)
-                        ]
-                ),
+            [
+                map_, 
+                Spacer(width=50),
+                widgetbox(widgets_map)
+                ]
+            ),
         title="Map"
         )
 tab_global = Panel(

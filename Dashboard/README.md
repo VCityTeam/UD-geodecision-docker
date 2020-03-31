@@ -1,4 +1,7 @@
 ## Presentation
+
+>***/!\ DISCLAIMER: this is a POC (Proof Of Concept). Loading the webmapping application could take time (up to 1-2 mns depending on your computer/OS/web brower) as well as filtering if there is a lot of data (Lyon districts and Villeurbanne - ). It could use 3 to 4 Go of RAM. Please consider this to avoid your web browser from crashing or freezing***
+
 This docker allow to run a webmapping decision-making tools application locally through your favorite web browser.
 
 ## Configuration table
@@ -13,9 +16,13 @@ This docker allow to run a webmapping decision-making tools application locally 
 #### inputs
 | name | type | description | example |
 |:-----|:----:|:------------|:-------:|
-| ***roofs*** | str | name of the inpu geospatial roofs file | *"dashboard/data/Dashboard/Roofs.gpkg"*|
+| ***roofs*** | str | name of the input geospatial roofs file | *"dashboard/data/Dashboard/Roofs.gpkg"*|
+| ***intersections*** | str | name of the intersections geospatial roofs file | *"dashboard/data/Dashboard/results.gpkg"*|
 | ***background*** | str | GeoJSON input file for background, default, included in the Docker | *"dashboard/background.geojson"*|
-| ***accessibility*** |  | ***see [accessibility section](#accessibility)*** | *|
+| ***unique_id*** | str | name of column with unique ids in roofs and intersections (*to make a join*)| *"ids"*|
+| ***classes*** | str | name of column with dict classes in *intersections* file | *"classes"*|
+| ***columns*** | array | name of column with unique ids in roofs and intersections (*to make a join*)| *["ids", "ADRESSE", "angles"]*|
+| ***accessibility*** |  | ***see [accessibility section](#accessibility)*** | |
 | ***layers*** | array | List of layers that will be used in the Bokeh app | *["LYON1ERBATI2015", "LYON9EMEBATI2015", "VILLEURBANNEBATI2015"]*|
 
 ##### accessibility
@@ -53,7 +60,25 @@ This docker allow to run a webmapping decision-making tools application locally 
 {
 	"inputs": {
 		"roofs": "dashboard/data/Dashboard/Roofs.gpkg",
+		"intersections": "dashboard/data/Dashboard/results.gpkg",
 		"background": "dashboard/background.geojson",
+		"unique_id": "ids",
+                "classes": "classes",
+                "columns": [
+                    "ids",
+										"building_ids",
+										"ADRESSE",
+                    "NOMCOMMUNE",
+										"attribute",
+										"public_access",
+										"angles",
+										"heights",
+										"nb_levels",
+										"area",
+										"total_surface",
+										"min_width",
+										"compactness"
+									],
 		"accessibility": {
 			"origins": "dashboard/data/Dashboard/parks.geojson",
 			"isochrones": "dashboard/data/Dashboard/iso_cut.gpkg",
@@ -137,7 +162,7 @@ sudo docker run --mount src=`pwd`,target=/Input,type=bind,type=bind -p 5006:5006
 ```
 * Then, go to => http://localhost:5006/dashboard
 * You should get something like this:
-![presentation](../img/dashboard_presentation.png)
+![presentation](../img/dashboard_1.png)
 
 ## Interface explanations
 * **Filter/Selection widgets section** (*filter and selection applied only after clicking on the **Filter button***)
@@ -152,15 +177,16 @@ sudo docker run --mount src=`pwd`,target=/Input,type=bind,type=bind -p 5006:5006
         * ***Widgets***:
             * Classical Bokeh widgets on the right of the map (*pan, zoom, reset, ...*)
             * Legend widget to hide/show element by clicking on it
-            * 2 color pickers:
-                * one to change the isochrone layer color,
-                * the other one to change the building color layer
+            * 1 color picker to change the isochrone layer color
             * 3 sliders:
                 * Simple slider to change background opacity  
                 * Simple slider to show/hide isochrones layer
-                * Range slider to show isochrone layers
+                * Range slider to show isochrone layers and make selections in/out isochrones by setting the range then clicking on Filter button. You should obtain "in" polygons (*white*) and "out" polygons (*red*) as shown on the following screenshot:
+					![datatable](../img/dashboard_4.png)			
     * **Datatable**:
-        * Bokeh Datatable showing selected/filtered data (*same as data shown on map*)
+        * Bokeh Datatable showing selected/filtered data (*same as data shown on map*):
+	![datatable](../img/dashboard_2.png)
     * **Synthesis**:
-        * Histogram showing filtered data sum by districts/towns
-        * Synthesis for selected layer and filtered data  
+        * Histogram showing number of filtered rooftops by districts/towns
+        * Synthesis for selected layer and filtered data  (*with precision on in/out isochrones*)
+	![synthesis](../img/dashboard_3.png)
